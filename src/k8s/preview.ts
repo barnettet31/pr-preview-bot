@@ -3,15 +3,20 @@ import { kApi, kApps, kNet } from "./client";
 interface IDeployParams {
     namespace: string;
     hostname: string;
+    image: string
 }
 
-export const deployPreview = async ({ namespace, hostname }: IDeployParams) => {
+export const deployPreview = async ({ namespace, hostname, image }: IDeployParams) => {
     try {
         await kApi.readNamespace({ name: namespace });
-        console.log("Namespace already exists, skipping deployment")
-        return;
+        console.log("Preview exists, deleting pods.")
+        await kApi.deleteCollectionNamespacedPod({
+            namespace,
+            labelSelector: 'app=preview-app'
+        });
+        return
     } catch (e: any) {
-        if (e.statusCode !== 404) throw e;
+        if (e.code !== 404) throw e;
     }
     try {
 
@@ -32,8 +37,9 @@ export const deployPreview = async ({ namespace, hostname }: IDeployParams) => {
                         }, spec: {
                             containers: [{
                                 name: 'preview-app',
-                                image: 'barnettet31/k3s-demo:v1',
-                                ports: [{ containerPort: 3000 }]
+                                image: image,
+                                imagePullPolicy: 'Always',
+                                ports: [{ containerPort: 80 }]
                             }]
                         },
                     }
@@ -51,7 +57,7 @@ export const deployPreview = async ({ namespace, hostname }: IDeployParams) => {
                     selector: {
                         app: 'preview-app'
                     },
-                    ports: [{ port: 3000, targetPort: 3000 }],
+                    ports: [{ port: 80, targetPort: 80 }],
 
                 }
             }
@@ -70,7 +76,7 @@ export const deployPreview = async ({ namespace, hostname }: IDeployParams) => {
                                 path: '/', pathType: 'Prefix', backend: {
                                     service: {
                                         name: "preview-app",
-                                        port: { number: 3000 }
+                                        port: { number: 80 }
                                     }
                                 }
                             }]
@@ -89,7 +95,7 @@ export const deployPreview = async ({ namespace, hostname }: IDeployParams) => {
     }
 }
 
-export const deletePreview = async ({ namespace }: IDeployParams) => {
+export const deletePreview = async ({ namespace }: Omit<IDeployParams, 'image'>) => {
     try {
 
         await kApi.deleteNamespace({ name: namespace, })

@@ -1,6 +1,6 @@
 import express from 'express';
 import { Webhooks } from '@octokit/webhooks';
-import dotenv from 'dotenv'; 
+import dotenv from 'dotenv';
 import { deletePreview, deployPreview } from './k8s/preview';
 import { makeComment } from './github/comments';
 dotenv.config();
@@ -10,28 +10,30 @@ const webhooks = new Webhooks({
     secret: process.env.WEBHOOK_SECRET || 'development'
 });
 
-webhooks.on('pull_request.opened', async ({ payload }) => {
-    const namespace = `pr-${payload.pull_request.number}`
-    const hostname = `pr-${payload.pull_request.number}.preview.local`;
-    await deployPreview({ namespace, hostname });
+webhooks.on('workflow_run', async ({ payload }) => {
+    if (payload.action !== 'completed') return;
+    if (payload.workflow_run.conclusion !== 'success') return;
+    if (payload.workflow_run.name !== 'Build PR Preview Image') return;
+    const prs = payload.workflow_run.pull_requests;
+    if(!prs || !prs.length) return console.log("No PR associated with workflow run");//protect for non-pr workflow runs
+    const prNumber = payload.workflow_run.pull_requests[0]?.number;
+    const sha = payload.workflow_run.head_sha;
+    console.log(`Deploying PR # ${prNumber}, (commit: ${sha.slice(0,7)})`);
+    const namespace = `pr-${payload.workflow_run.pull_requests[0]?.number}`
+    const hostname = `pr-${payload.workflow_run.pull_requests[0]?.number}.preview.local`;
+    const image = `barnettet31/react-preview:${namespace}`
+    console.log("Using this image: ", image)
+    await deployPreview({ namespace, hostname, image });
     //@ts-ignore
     await makeComment({ payload, hostname });
-
-});
-
-webhooks.on('pull_request.reopened', async ({ payload, }) => {
-    const namespace = `pr-${payload.pull_request.number}`
-    const hostname = `pr-${payload.pull_request.number}.preview.local`;
-    await deployPreview({ namespace, hostname });
-    //@ts-ignore
-    await makeComment({ payload, hostname });
-
 });
 
 webhooks.on("pull_request.closed", async ({ payload }) => {
     const namespace = `pr-${payload.pull_request.number}`
     const hostname = `pr-${payload.pull_request.number}.preview.local`;
-    deletePreview({ namespace, hostname });
+    console.log("Killing this preview namespace: ", namespace)
+    await deletePreview({ namespace, hostname });
+    console.log(`${namespace} terminated`)
 })
 
 app.post('/webhook', express.text({ type: 'application/json' }), async (req, res) => {
