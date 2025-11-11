@@ -12,7 +12,6 @@ interface IMakeCommentParams {
     payload: PullRequestOpenedEvent | PullRequestReopenedEvent;
     hostname: string;
 }
-
 export const makeComment = async({payload, hostname }:IMakeCommentParams)=>{
     const { token } = await appAuth({
             type: 'installation',

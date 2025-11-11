@@ -1,8 +1,8 @@
-import * as k8s from '@kubernetes/client-node';
+import * as k from '@kubernetes/client-node';
 
-const kc = new k8s.KubeConfig();
+const kc = new k.KubeConfig();
 kc.loadFromDefault();
 kc.setCurrentContext('default');
-export const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
-export const k8sApps = kc.makeApiClient(k8s.AppsV1Api);
-export const k8sNet = kc.makeApiClient(k8s.NetworkingV1Api);
+export const kApi = kc.makeApiClient(k.CoreV1Api);
+export const kApps = kc.makeApiClient(k.AppsV1Api);
+export const kNet = kc.makeApiClient(k.NetworkingV1Api);
