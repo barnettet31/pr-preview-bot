@@ -6,6 +6,12 @@ interface IDeployParams {
 }
 
 export const deployPreview = async ({ namespace, hostname }: IDeployParams) => {
+    try {
+        await k8sApi.readNamespace({ name: namespace });
+        return;
+    } catch (e: any) {
+        if (e.statusCode !== 404) throw e;
+    }
     await k8sApi.createNamespace({ body: { metadata: { name: namespace } } });
     await k8sApps.createNamespacedDeployment({
         namespace,

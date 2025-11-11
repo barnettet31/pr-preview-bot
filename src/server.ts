@@ -1,8 +1,6 @@
 import express from 'express';
 import { Webhooks } from '@octokit/webhooks';
-
-import dotenv from 'dotenv';
-import type { PullRequestOpenedEvent, PullRequestReopenedEvent } from '@octokit/webhooks-types';
+import dotenv from 'dotenv'; 
 import { deletePreview, deployPreview } from './k8s/preview';
 import { makeComment } from './github/comments';
 dotenv.config();
@@ -15,42 +13,25 @@ const webhooks = new Webhooks({
 webhooks.on('pull_request.opened', async ({ payload }) => {
     const namespace = `pr-${payload.pull_request.number}`
     const hostname = `pr-${payload.pull_request.number}.preview.local`;
-    try {
+    await deployPreview({ namespace, hostname });
+    //@ts-ignore
+    await makeComment({ payload, hostname });
 
-        await deployPreview({ namespace, hostname });
-        //@ts-ignore
-        await makeComment({ payload, hostname });
-    }
-    catch (e) {
-        //TODO Implement error handling
-    }
 });
 
 webhooks.on('pull_request.reopened', async ({ payload, }) => {
     const namespace = `pr-${payload.pull_request.number}`
     const hostname = `pr-${payload.pull_request.number}.preview.local`;
-    try {
+    await deployPreview({ namespace, hostname });
+    //@ts-ignore
+    await makeComment({ payload, hostname });
 
-        await deployPreview({ namespace, hostname });
-        //@ts-ignore
-        await makeComment({ payload, hostname });
-    }
-    catch (e) {
-
-    }
 });
 
 webhooks.on("pull_request.closed", async ({ payload }) => {
-
     const namespace = `pr-${payload.pull_request.number}`
     const hostname = `pr-${payload.pull_request.number}.preview.local`;
-    try {
-        deletePreview({ namespace, hostname });
-    }
-    catch (e) {
-        //TODO error handling
-    }
-
+    deletePreview({ namespace, hostname });
 })
 
 app.post('/webhook', express.text({ type: 'application/json' }), async (req, res) => {
