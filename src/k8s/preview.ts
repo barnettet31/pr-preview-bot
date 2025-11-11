@@ -11,7 +11,7 @@ export const deployPreview = async ({ namespace, hostname }: IDeployParams) => {
         console.log("Namespace already exists, skipping deployment")
         return;
     } catch (e: any) {
-        if (e.statusCode !== 404) throw e;
+        if (e.code !== 404) throw e;
     }
     try {
 
@@ -94,7 +94,7 @@ export const deletePreview = async ({ namespace }: IDeployParams) => {
 
         await k8sApi.deleteNamespace({ name: namespace, })
     } catch (e: any) {
-        if (e.statusCode === 404) {
+        if (e.code === 404) {
             console.error("Namespace already deleted");
             return;
         }

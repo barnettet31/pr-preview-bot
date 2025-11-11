@@ -1,9 +1,9 @@
 import express from 'express';
 import { Webhooks } from '@octokit/webhooks';
 import dotenv from 'dotenv'; 
+dotenv.config();
 import { deletePreview, deployPreview } from './k8s/preview';
 import { makeComment } from './github/comments';
-dotenv.config();
 const app = express();
 
 const webhooks = new Webhooks({
@@ -54,3 +54,12 @@ app.listen(3000, () => {
     console.log('Webhook listener on port 3000');
 });
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
