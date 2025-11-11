@@ -16,7 +16,7 @@ interface IMakeCommentParams {
 export const makeComment = async({payload, hostname }:IMakeCommentParams)=>{
     const { token } = await appAuth({
             type: 'installation',
-            installationId: ""//payload.installation?.id
+            installationId: payload.installation?.id
         });
         const octokit = new Octokit({ auth: token });
         await octokit.rest.issues.createComment({
