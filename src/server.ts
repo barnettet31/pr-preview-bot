@@ -1,7 +1,7 @@
 import express from 'express';
 import { Webhooks } from '@octokit/webhooks';
 import dotenv from 'dotenv';
-import { deletePreview, deployPreview } from './k8s/preview';
+import { deletePreview, deployPreview, waitOnPodDeploy } from './k8s/preview';
 import { makeComment } from './github/comments';
 dotenv.config();
 const app = express();
@@ -18,16 +18,17 @@ webhooks.on('workflow_run', async ({ payload }) => {
     if(!prs || !prs.length) return console.log("No PR associated with workflow run");//protect for non-pr workflow runs
     const prNumber = payload.workflow_run.pull_requests[0]?.number;
     const sha = payload.workflow_run.head_sha;
-    console.log(`Deploying PR # ${prNumber}, (commit: ${sha.slice(0,7)})`);
     const namespace = `pr-${payload.workflow_run.pull_requests[0]?.number}`
     const hostname = `pr-${payload.workflow_run.pull_requests[0]?.number}.preview.local`;
     const image = `barnettet31/react-preview:${namespace}`
     console.log("Using this image: ", image)
     await deployPreview({ namespace, hostname, image });
+    console.log("Wait for pod to be ready...");
+    await waitOnPodDeploy(namespace);
+    console.log('Pod ready.')
     //@ts-ignore
     await makeComment({ payload, hostname });
 });
-
 webhooks.on("pull_request.closed", async ({ payload }) => {
     const namespace = `pr-${payload.pull_request.number}`
     const hostname = `pr-${payload.pull_request.number}.preview.local`;
