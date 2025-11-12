@@ -1,6 +1,6 @@
 import * as k from '@kubernetes/client-node';
 
-const kc = new k.KubeConfig();
+export const kc = new k.KubeConfig();
 kc.loadFromDefault();
 kc.setCurrentContext('default');
 export const kApi = kc.makeApiClient(k.CoreV1Api);

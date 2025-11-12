@@ -1,10 +1,42 @@
-import { kApi, kApps, kNet } from "./client";
-
+import * as k from '@kubernetes/client-node';
+import { kApi, kApps, kc, kNet } from "./client";
+import { Watch } from '@kubernetes/client-node';
+import { sign } from 'crypto';
+import { withTimeout } from '../utils/withTimeout';
 interface IDeployParams {
     namespace: string;
     hostname: string;
     image: string
 }
+export const waitOnPodDeploy = async (namespace: string, timeout: number = 3000000) => {
+    const watch = new Watch(kc);
+    const waitForPod = async (signal: AbortSignal) => {
+        return new Promise<void>(async (resolve, reject) => {
+            let resolved = false;
+            const request = await watch.watch(`/api/v1/namespaces/${namespace}/pods`, { labelSelector: 'app=preview-app' }, (type, pod) => {
+                if (signal.aborted) return;
+                if (type === 'ADDED' || type === 'MODIFIED') {
+                    if (pod.status?.phase === 'Running') {
+                        const ready = pod.status.conditions?.find((c: any) => c.type === 'Ready' && c.status === 'True');
+                        if (ready) {
+                            resolved = true;
+                            request.abort();
+                            resolve()
+                        }
+
+                    }
+                }
+            }, (err) => {
+                console.log(err)
+                if (!resolved) reject(err)
+            });
+            signal.addEventListener('abort', () => request.abort())
+        });
+    }
+    return withTimeout(timeout)(waitForPod);
+}
+
+
 
 export const deployPreview = async ({ namespace, hostname, image }: IDeployParams) => {
     try {
