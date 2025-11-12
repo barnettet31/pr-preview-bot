@@ -72,7 +72,17 @@ export const deployPreview = async ({ namespace, hostname, image }: IDeployParam
                                 image: image,
                                 imagePullPolicy: 'Always',
                                 ports: [{ containerPort: 80 }]
-                            }]
+                            }], 
+                            resources:{
+                                requests:{
+                                    cpu:'50m', 
+                                    memory: '64Mi'
+                                }, 
+                                limits:{
+                                    cpu: '100m', 
+                                    memory:'128Mi'
+                                }
+                            }
                         },
                     }
                 }
