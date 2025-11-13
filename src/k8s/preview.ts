@@ -27,7 +27,6 @@ export const waitOnPodDeploy = async (namespace: string, timeout: number = 30000
                     }
                 }
             }, (err) => {
-                console.log(err)
                 if (!resolved) reject(err)
             });
             signal.addEventListener('abort', () => request.abort())
@@ -41,7 +40,6 @@ export const waitOnPodDeploy = async (namespace: string, timeout: number = 30000
 export const deployPreview = async ({ namespace, hostname, image }: IDeployParams) => {
     try {
         await kApi.readNamespace({ name: namespace });
-        console.log("Preview exists, deleting pods.")
         await kApi.deleteCollectionNamespacedPod({
             namespace,
             labelSelector: 'app=preview-app'
@@ -128,11 +126,9 @@ export const deployPreview = async ({ namespace, hostname, image }: IDeployParam
             }
         })
     } catch (e: any) {
-        console.error(`Failed to deploy PR, cleaning up:`, e.body?.message || e.message);
         try {
             await deletePreview({ namespace, hostname });
         } catch (e: any) {
-            console.error("Failed to cleanup", e);
         }
     }
 }
@@ -143,7 +139,6 @@ export const deletePreview = async ({ namespace }: Omit<IDeployParams, 'image'>)
         await kApi.deleteNamespace({ name: namespace, })
     } catch (e: any) {
         if (e.code === 404) {
-            console.error("Namespace already deleted");
             return;
         }
         throw e;

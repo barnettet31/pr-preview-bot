@@ -15,26 +15,21 @@ webhooks.on('workflow_run', async ({ payload }) => {
     if (payload.workflow_run.conclusion !== 'success') return;
     if (payload.workflow_run.name !== 'Build PR Preview Image') return;
     const prs = payload.workflow_run.pull_requests;
-    if(!prs || !prs.length) return console.log("No PR associated with workflow run");//protect for non-pr workflow runs
+    if(!prs || !prs.length) return;
     const prNumber = payload.workflow_run.pull_requests[0]?.number;
     const sha = payload.workflow_run.head_sha;
     const namespace = `pr-${payload.workflow_run.pull_requests[0]?.number}`
     const hostname = `pr-${payload.workflow_run.pull_requests[0]?.number}.preview.local`;
     const image = `barnettet31/react-preview:${namespace}`
-    console.log("Using this image: ", image)
     await deployPreview({ namespace, hostname, image });
-    console.log("Wait for pod to be ready...");
     await waitOnPodDeploy(namespace);
-    console.log('Pod ready.')
     //@ts-ignore
     await makeComment({ payload, hostname });
 });
 webhooks.on("pull_request.closed", async ({ payload }) => {
     const namespace = `pr-${payload.pull_request.number}`
     const hostname = `pr-${payload.pull_request.number}.preview.local`;
-    console.log("Killing this preview namespace: ", namespace)
     await deletePreview({ namespace, hostname });
-    console.log(`${namespace} terminated`)
 })
 
 app.post('/webhook', express.text({ type: 'application/json' }), async (req, res) => {
@@ -48,7 +43,6 @@ app.post('/webhook', express.text({ type: 'application/json' }), async (req, res
 
         res.status(200).send('OK');
     } catch (error) {
-        console.error(error);
         res.status(500).send('Error');
     }
 });
